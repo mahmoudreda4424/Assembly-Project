@@ -1,5 +1,5 @@
 .MODEL SMALL
-;.STACK 500H
+                                                                                                    
   
   .DATA            
       NL DB 0DH,0AH,'$'
@@ -71,7 +71,7 @@
       points DB 0 
                       
                       
-      msg_time_elapsed db 'Time elapsed: ','$'
+      msg_time_elapsed db 'Time elapsed: ','$'      
 
       ; Variables to store the time at the start of the game
       start_hours db 0
@@ -85,7 +85,7 @@
       end_seconds db 0
       end_ticks db 0
 
-      
+      divisor db 10  
       msg_games_list DB '1. Number Sequence Game (1)', 0DH, 0AH, '2. Exit the Game (2)', 0DH, 0AH, '$'
   
 .CODE 
@@ -121,7 +121,7 @@
                      
        ; Display the welcome message                   
        LEA DX, msg_welcome
-       MOV AH, 09H
+       MOV AH, 09H                                                                                      
        INT 21H
        
        
@@ -601,35 +601,40 @@
      LEA DX, msg_score
      MOV AH, 09H
      INT 21H
-   
+                 
+                 
+     MOV al, points
+       mov ah,0
+       mov bl , divisor
+       div bl   
+       mov bl ,al 
+       mov bh , ah 
+       
+       add bl , '0'     ; Convert score to ASCII
+       mov dl , bl
+       mov ah, 02h       
+       int 21h           
      
-     MOV AL, points
-     ADD AL, '0' ; Convert score to ASCII
-     MOV DL, AL
-     MOV AH, 02H
-     INT 21H
+       add bh , '0'     ; Convert score to ASCII
+       mov dl , bh   
+       mov ah, 02h       
+       int 21h 
+    
      
      call NEW_LINE 
      
      
      
    
-    ; End of the game and calculate the elapsed time
-       MOV AH, 2Ch
-       INT 21h
-       MOV end_hours, CH
-       MOV end_minutes, CL
-       MOV end_seconds, DH
-       MOV end_ticks, DL
    
     ; Calculate the difference in time 
        
        ; First, the difference in tick
-       MOV AL, end_ticks
-       SUB AL, start_ticks
-       JMP continue_time_ticks ;JNS checks if the result of a subtraction is non-negative (SF = 0).
-       ;ADD AL, 60
-       ;DEC end_minutes
+       MOV AL, end_ticks        
+       SUB AL, start_ticks      
+       JNS continue_time_ticks ;JNS checks if the result of a subtraction is non-negative (SF = 0).
+       ADD AL, 60               ;     09:08:56   
+       DEC end_seconds          ;     09:10:05   
    
    continue_time_ticks:
        MOV end_ticks, AL
@@ -637,9 +642,9 @@
        ; Second, the difference in seconds
        MOV AL, end_seconds
        SUB AL, start_seconds
-       JMP continue_time_seconds
-       ;ADD AL, 60
-       ;DEC end_minutes
+       JNS continue_time_seconds
+       ADD AL, 60
+       DEC end_minutes
    
    continue_time_seconds:
        MOV end_seconds, AL
@@ -647,9 +652,9 @@
        ; Third, the difference in minutes
        MOV AL, end_minutes
        SUB AL, start_minutes
-       JMP continue_time_minutes
-       ;ADD AL, 60
-       ;DEC end_hours
+       JNS continue_time_minutes
+       ADD AL, 60
+       DEC end_hours
    
    continue_time_minutes:
        MOV end_minutes, AL
@@ -659,49 +664,11 @@
        SUB AL, start_hours
        MOV end_hours, AL
    
-       ; Display the elapsed time
-       LEA DX, msg_time_elapsed
-       MOV AH, 09h
-       INT 21h
-        
-       ; Display hours 
-       MOV DL, end_hours
-       ADD DL, '0'
-       MOV AH, 02h
-       INT 21h
-       
-       ; Display separator between minutes and seconds
-       MOV DL, ':'
-       MOV AH, 02h
-       INT 21h
-        
-       ; Display minutes
-       MOV DL, end_minutes
-       ADD DL, '0'
-       MOV AH, 02h
-       INT 21h
-   
-       ; Display separator between minutes and seconds
-       MOV DL, ':'
-       MOV AH, 02h
-       INT 21h
-   
-       ; Display seconds
-       MOV DL, end_seconds
-       ADD DL, '0'
-       MOV AH, 02h
-       INT 21h
-       
-        ; Display separator between minutes and seconds
-       MOV DL, ':'
-       MOV AH, 02h
-       INT 21h
-        
-       ; Display ticks
-       MOV DL, end_ticks
-       ADD DL, '0'
-       MOV AH, 02h
-       INT 21h
+      CALL TIME     
+     
+     
+     
+     
         
        call NEW_LINE
        call NEW_LINE
@@ -745,7 +712,91 @@
           MOV AH,9H
           INT 21H                           
           RET
-   NEW_LINE ENDP   
+   NEW_LINE ENDP
+   
+   
+    TIME PROC NEAR 
+        
+       ; Display the elapsed time
+       LEA DX, msg_time_elapsed
+       MOV AH, 09h
+       INT 21h
+        
+       ; Display hours
+       MOV al, end_hours
+       mov ah,0
+       mov bl , divisor
+       div bl   
+       mov bl ,al 
+       mov bh , ah 
+       
+       add bl , '0'  
+       mov dl , bl
+       mov ah, 02h       
+       int 21h           
+     
+       add bh , '0'
+       mov dl , bh   
+       mov ah, 02h       
+       int 21h    
+       
+      
+       
+       ; Display separator between minutes and seconds
+       MOV DL, ':'
+       MOV AH, 02h
+       INT 21h
+                    
+                    
+                    
+                    
+       ; Display minutes 
+       MOV al, end_minutes
+       mov ah,0
+       mov bl , divisor
+       div bl   
+       mov bl ,al  
+       mov bh , ah 
+       
+       add bl , '0'
+       mov dl , bl
+       mov ah, 02h       
+       int 21h           
+     
+       add bh , '0'
+       mov dl , bh   
+       mov ah, 02h       
+       int 21h 
+      
+   
+       ; Display separa     tor between minutes and seconds
+       MOV DL, ':'
+       MOV AH, 02h
+       INT 21h
+                   
+                   
+                   
+                   
+       ; Display seconds
+       MOV al, end_seconds
+       mov ah,0
+       mov bl , divisor
+       div bl   
+       mov bl ,al 
+       mov bh , ah
+       
+       add bl , '0' 
+       mov dl , bl
+       mov ah, 02h       
+       int 21h           
+     
+       add bh , '0'
+       mov dl , bh   
+       mov ah, 02h       
+       int 21h 
+            
+       ret 
+    TIME ENDP
   
 END MAIN
  
